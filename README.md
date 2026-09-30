@@ -36,7 +36,7 @@ Run date: 2026-09-29. Total API spend for the test: about $0.10.
 - Jev's cost is list price ($0.042 per million input tokens) times billed tokens. Jev's API doesn't return a dollar cost. LLM costs are the actual charges OpenRouter reported.
 - Token counts, costs and answers come from the first run of each workload. Latency, and the LLM cost, use the median of 3 runs.
 - The agreement rate only compares choice and yes/no questions. On score questions, Jev returns a weighted average that can fall between levels, so it isn't compared directly with the LLMs' whole-number levels.
-- The workbook's LiveTest summary cells average both LLMs together.
+- The workbook's LiveTest summary breaks results out per LLM. Per-model latency there is the average of the per-workload medians, so it differs slightly from the medians in the table above.
 - The offline token counts use OpenAI's o200k tokenizer as a proxy for Jev's. Jev's own tokenizer is not public.
 
 ## Running it yourself

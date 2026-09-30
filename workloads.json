@@ -1,0 +1,178 @@
+[
+  {
+    "id": "gl_coding",
+    "name": "GL transaction coding",
+    "description": "Assign a bank transaction to a general-ledger account, with recent coding history for the same vendor as context.",
+    "state": {
+      "company": "Series A B2B SaaS company, accrual basis, US GAAP, fiscal year = calendar year",
+      "transaction": {
+        "date": "2026-09-14",
+        "amount_usd": -4218.37,
+        "bank_description": "AMZN WEB SERVICES AWS.AMAZON.CO WA",
+        "card": "Corporate card ending 4417, cardholder: Platform Engineering",
+        "memo": "Sept usage - prod + staging clusters, reserved instance true-up"
+      },
+      "vendor_history": [
+        {"date": "2026-08-14", "amount_usd": -3977.10, "coded_to": "5110 Hosting - Production", "note": "monthly usage"},
+        {"date": "2026-07-14", "amount_usd": -3802.55, "coded_to": "5110 Hosting - Production", "note": "monthly usage"},
+        {"date": "2026-06-30", "amount_usd": -18000.00, "coded_to": "1410 Prepaid Expenses", "note": "1-yr reserved instance prepayment"},
+        {"date": "2026-06-14", "amount_usd": -3650.02, "coded_to": "5110 Hosting - Production", "note": "monthly usage"},
+        {"date": "2026-05-14", "amount_usd": -1210.44, "coded_to": "6420 R&D Cloud - Non-production", "note": "staging only, split from prod"}
+      ],
+      "coding_policy": "Production hosting that serves paying customers is cost of revenue (5110). Staging, dev and research compute is R&D (6420). Prepayments over $10,000 covering more than 3 months are capitalized to 1410 and amortized. If a single charge mixes production and non-production usage and the split is not stated, code to the larger component and flag for review."
+    },
+    "questions": {
+      "gl_account": {
+        "type": "choice",
+        "instructions": "Which general-ledger account should this transaction be coded to under the company's coding policy?",
+        "criteria": {
+          "1010": "Operating cash", "1200": "Accounts receivable", "1410": "Prepaid expenses",
+          "1510": "Computer equipment (capitalized)", "2010": "Accounts payable", "2100": "Accrued expenses",
+          "2200": "Deferred revenue", "4010": "Subscription revenue", "4020": "Usage revenue",
+          "5110": "Hosting - Production (cost of revenue)", "5120": "Third-party APIs - Production (cost of revenue)",
+          "5130": "Customer support tools (cost of revenue)", "5210": "Payment processing fees",
+          "6110": "Salaries - R&D", "6120": "Payroll taxes - R&D", "6410": "Software subscriptions - R&D",
+          "6420": "R&D cloud - Non-production", "6430": "R&D contractors", "7110": "Salaries - Sales and marketing",
+          "7210": "Advertising", "7220": "Events and conferences", "7310": "Marketing software",
+          "8110": "Salaries - G&A", "8210": "Rent", "8220": "Office supplies", "8310": "Legal fees",
+          "8320": "Accounting and audit", "8330": "Recruiting fees", "8410": "Insurance",
+          "8510": "Travel", "8520": "Meals and entertainment", "8610": "Bank fees", "9990": "Suspense - needs review"
+        }
+      },
+      "needs_review": {
+        "type": "noul",
+        "instructions": "Should a human accountant review this coding before the books close?",
+        "criteria": {"true": "The charge mixes production and non-production usage, includes a prepayment component, or deviates materially from vendor history.", "false": "The charge is routine and consistent with prior months."}
+      }
+    }
+  },
+  {
+    "id": "invoice_approval",
+    "name": "Vendor invoice approval check",
+    "description": "Decide whether an incoming invoice can be auto-approved against the purchase order and contract terms.",
+    "state": {
+      "invoice": {
+        "vendor": "Northwind Data Labeling LLC",
+        "invoice_number": "NW-2026-0931",
+        "invoice_date": "2026-09-20",
+        "due_date": "2026-10-20",
+        "line_items": [
+          {"description": "Annotation services - batch 14 (12,400 items @ $0.85)", "amount": 10540.00},
+          {"description": "Quality review - batch 14 (10% sample)", "amount": 1054.00},
+          {"description": "Rush fee (48h turnaround)", "amount": 1500.00}
+        ],
+        "subtotal": 13094.00, "tax": 0, "total": 13094.00,
+        "remit_to": "ACH, account ending 7731 (changed from ending 2208 on prior invoices)"
+      },
+      "purchase_order": {
+        "po_number": "PO-1188", "approved_amount": 12000.00, "remaining_balance": 12250.00,
+        "unit_price_agreed": 0.85, "rush_fees": "Not included in PO; require written pre-approval from budget owner",
+        "budget_owner": "Head of Data"
+      },
+      "approval_policy": "Auto-approve only if total is within the PO remaining balance, unit prices match, no unapproved fees, and remit-to banking details match the vendor master file. Any change in banking details must be verified by phone before payment."
+    },
+    "questions": {
+      "auto_approve": {"type": "noul", "instructions": "Can this invoice be auto-approved for payment under the approval policy?"},
+      "primary_issue": {
+        "type": "choice",
+        "instructions": "What is the most important issue blocking or affecting approval?",
+        "criteria": {
+          "none": "No issues; invoice is clean", "over_po": "Total exceeds PO remaining balance",
+          "price_mismatch": "Unit price differs from the agreed price", "unapproved_fee": "Contains a fee not covered by the PO",
+          "bank_change": "Remit-to banking details changed and need verification", "duplicate": "Possible duplicate of a paid invoice"
+        }
+      },
+      "fraud_risk": {
+        "type": "score",
+        "instructions": "Rate the payment fraud risk of this invoice.",
+        "criteria": ["Minimal: routine vendor, no changes", "Low: minor anomalies with benign explanations", "Moderate: one red flag that needs verification", "High: multiple red flags; hold payment", "Severe: strong indicators of fraud; escalate immediately"]
+      }
+    }
+  },
+  {
+    "id": "ticket_routing",
+    "name": "Support ticket routing",
+    "description": "Route an inbound customer email to the right queue and set priority.",
+    "state": {
+      "customer": {"plan": "Enterprise", "arr_usd": 184000, "account_health": "at risk (usage down 30% QoQ)", "renewal_date": "2026-11-30"},
+      "email": {
+        "subject": "Invoice doesn't match our usage + API timeouts since Friday",
+        "body": "Hi team, two things. First, our September invoice shows 41M API calls but our own logs show about 29M. Can someone reconcile this before we pay? Second, since Friday afternoon roughly 3% of our calls to the scoring endpoint are timing out at 30 seconds, which is breaking our nightly batch. We've retried with backoff and it's not helping. This is the second billing issue this quarter and our CFO is asking whether we should look at alternatives before the renewal. Please treat as urgent. Thanks, Priya (VP Engineering)"
+      }
+    },
+    "questions": {
+      "queue": {
+        "type": "choice",
+        "instructions": "Which queue should own this ticket first?",
+        "criteria": {
+          "billing": "Invoices, charges, refunds, usage reconciliation", "tech_support_p1": "Production outage or severe degradation",
+          "tech_support": "Non-urgent technical questions", "account_mgmt": "Renewal, expansion, churn risk, executive escalations",
+          "sales": "New purchases and upgrades", "security": "Security or compliance concerns", "feature_request": "Product feedback",
+          "onboarding": "New customer setup", "legal": "Contract and legal questions", "spam": "Not a real request"
+        }
+      },
+      "priority": {"type": "score", "instructions": "How urgent is this ticket?", "criteria": ["P4: whenever", "P3: this week", "P2: within one business day", "P1: within four hours", "P0: immediately, page on-call"]},
+      "churn_signal": {"type": "noul", "instructions": "Does this message contain an explicit or implicit churn threat?"}
+    }
+  },
+  {
+    "id": "expense_policy",
+    "name": "Expense report policy check",
+    "description": "Check an employee expense report against the travel and expense policy.",
+    "state": {
+      "employee": {"role": "Developer Advocate", "level": "IC", "department": "GTM"},
+      "trip": "Speaking at a developer conference in Austin, 3 nights, pre-approved by manager",
+      "expenses": [
+        {"category": "Airfare", "amount": 684.20, "detail": "SFO-AUS round trip, premium economy, booked 9 days ahead"},
+        {"category": "Hotel", "amount": 1127.40, "detail": "3 nights at conference hotel, $375.80/night incl. taxes"},
+        {"category": "Meals", "amount": 212.65, "detail": "Individual meals across 4 days"},
+        {"category": "Meals", "amount": 486.00, "detail": "Dinner with 4 developers from two prospective customers; attendees listed"},
+        {"category": "Ground transport", "amount": 96.30, "detail": "Rideshare, 6 trips"},
+        {"category": "Other", "amount": 149.00, "detail": "Conference swag stickers printed locally"}
+      ],
+      "policy": "Economy airfare required for flights under 6 hours unless pre-approved. Hotels capped at $325/night in tier-1 cities and $275/night elsewhere; conference hotels may exceed the cap by up to 20% if booked through the conference block. Individual meals capped at $75/day. Customer meals allowed at up to $125 per attendee including employees, with attendee names and business purpose. Marketing materials must be purchased through the marketing budget, not personal expense reports."
+    },
+    "questions": {
+      "compliant": {"type": "noul", "instructions": "Is the entire expense report compliant with policy as submitted?"},
+      "worst_violation": {
+        "type": "choice",
+        "instructions": "Which item is the most significant policy issue?",
+        "criteria": {"none": "No violations", "airfare": "Airfare class", "hotel": "Hotel rate", "individual_meals": "Individual meals", "customer_meal": "Customer meal", "transport": "Ground transport", "other_purchase": "Purchase that should use another budget"}
+      }
+    }
+  },
+  {
+    "id": "contract_risk",
+    "name": "Contract clause risk scoring",
+    "description": "Score the risk of a customer contract's liability and indemnity clauses for a sales-ops review queue.",
+    "state": {
+      "deal": {"customer": "Regional health insurer", "acv_usd": 420000, "term_years": 3, "product": "Usage-based decision API"},
+      "clauses": {
+        "limitation_of_liability": "Except for Excluded Claims, each party's aggregate liability arising out of or related to this Agreement shall not exceed the greater of (a) three times (3x) the fees paid or payable by Customer in the twenty-four (24) months preceding the event giving rise to the claim, or (b) five million dollars ($5,000,000). 'Excluded Claims' means (i) a party's indemnification obligations, (ii) breach of Section 9 (Confidentiality) or Section 10 (Data Protection), and (iii) a party's gross negligence, fraud or willful misconduct, for which liability shall be uncapped.",
+        "indemnification": "Provider shall defend, indemnify and hold harmless Customer and its affiliates, officers, directors, employees and agents from and against any and all losses, damages, fines, penalties, costs and expenses (including reasonable attorneys' fees) arising out of or relating to (a) any claim that the Services infringe any intellectual property right of a third party, (b) any breach of Section 10 (Data Protection) by Provider or its subprocessors, including any regulatory fines, notification costs and credit monitoring, and (c) any decision, output or recommendation generated by the Services that is relied upon by Customer in making coverage, claims or eligibility determinations.",
+        "data_protection": "Provider shall process Protected Health Information solely as a Business Associate under the attached BAA, shall not use Customer Data to train or improve any model, and shall notify Customer of any Security Incident within twenty-four (24) hours of discovery.",
+        "termination": "Customer may terminate for convenience upon ninety (90) days' written notice, and Provider shall refund any prepaid fees for the unused portion of the Term."
+      },
+      "company_standard_positions": "Standard cap: 1x fees paid in prior 12 months. Uncapped only for IP indemnity and fraud. Data breach liability supercapped at 3x fees. No indemnity for customer reliance on model outputs. Breach notification within 72 hours. No termination for convenience in multi-year prepaid deals."
+    },
+    "questions": {
+      "overall_risk": {"type": "score", "instructions": "Rate the overall legal and financial risk of these clauses relative to the company's standard positions.", "criteria": ["Standard: matches our positions", "Low: minor deviations", "Moderate: deviations needing legal sign-off", "High: material exposure; needs GC and CFO approval", "Unacceptable: must be renegotiated before signing"]},
+      "worst_clause": {"type": "choice", "instructions": "Which clause creates the largest exposure?", "criteria": {"limitation_of_liability": "Liability cap", "indemnification": "Indemnification scope", "data_protection": "Data protection terms", "termination": "Termination rights"}},
+      "revenue_recognition_flag": {"type": "noul", "instructions": "Do any clauses create a revenue-recognition concern that finance should review?"}
+    }
+  },
+  {
+    "id": "lead_score",
+    "name": "Inbound lead qualification",
+    "description": "Score a self-serve signup for sales follow-up.",
+    "state": {
+      "signup": {"email_domain": "brightpath-logistics.com", "title": "Staff Engineer", "company_size": "1,000-5,000", "industry": "Freight and logistics", "country": "US"},
+      "usage_first_7_days": {"api_calls": 184000, "distinct_question_types": 3, "peak_qps": 42, "credit_used_usd": 4.61, "added_payment_method": false},
+      "notes": "Signed up via Vercel AI Gateway integration. Asked in community Slack about SOC 2 report and volume pricing above 50M calls/month."
+    },
+    "questions": {
+      "fit": {"type": "score", "instructions": "How strong a fit is this account for an enterprise sales conversation?", "criteria": ["Poor fit", "Weak fit", "Possible fit", "Good fit", "Excellent fit"]},
+      "contact_now": {"type": "noul", "instructions": "Should an account executive reach out within 24 hours?"}
+    }
+  }
+]

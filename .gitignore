@@ -1,0 +1,9 @@
+# local secrets
+.secrets/
+*.env
+
+# local artifacts
+__pycache__/
+*.log
+.DS_Store
+~$*.xlsx
